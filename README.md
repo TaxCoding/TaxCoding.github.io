@@ -16,4 +16,4 @@ Ini adalah demo sederhana untuk halaman login dan pendaftaran. Proyek ini menunj
 1. **Kloning Repository:**
 
    ```bash
-   git clone https://github.com/TaxCoding/demo-login-signup.git
+   git clone github.com/TaxCoding/TaxCoding.github.io.git
