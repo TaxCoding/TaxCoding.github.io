@@ -1,0 +1,70 @@
+/* General styling */
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    padding: 20px;
+    background-color: #f4f4f4;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+h2 {
+    color: #555;
+}
+
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+ul li {
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+/* Penjelasan warna */
+.red {
+    color: red;
+}
+
+/* Mengganti warna kuning dengan gold */
+.yellow {
+    color: gold; /* Mengganti kuning dengan warna gold */
+}
+
+.green {
+    color: green;
+}
+
+.blue {
+    color: blue;
+}
+
+.purple {
+    color: purple;
+}
+
+.orange {
+    color: orange;
+}
+
+.brown {
+    color: brown;
+}
+
+/* Story styling */
+.story {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-size: 18px;
+    line-height: 1.6;
+}
+
+.story p {
+    margin-bottom: 15px;
+}
