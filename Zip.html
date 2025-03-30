@@ -1,94 +1,425 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZIP Viewer</title>
+    <title>ZIP Viewer Enhanced</title>
     <style>
-        body { text-align: center; font-family: Arial, sans-serif; }
-        #viewer { width: 80vw; height: 60vh; margin: auto; background: #ddd; display: flex; align-items: center; justify-content: center; }
-        #viewer img, #viewer video { max-width: 100%; max-height: 100%; }
-        #fileList { margin-top: 10px; }
-        .hidden { display: none; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh; /* Ensure body takes full height */
+            box-sizing: border-box;
+        }
+
+        /* --- Controls Area --- */
+        .controls {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px; /* Spacing between items */
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            justify-content: center;
+        }
+
+        input[type="file"] {
+            /* Basic styling for file input */
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        /* More advanced file input styling (optional) */
+        input[type="file"]::file-selector-button {
+            margin-right: 10px;
+            border: none;
+            background: #007bff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background: #0056b3;
+        }
+
+
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #28a745; /* Green */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #218838; /* Darker green */
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button#toggleListBtn {
+             background-color: #17a2b8; /* Teal */
+        }
+         button#toggleListBtn:hover {
+             background-color: #117a8b; /* Darker Teal */
+        }
+
+        /* --- Viewer Area --- */
+        #viewerContainer {
+            width: 85vw; /* Slightly wider */
+            max-width: 900px; /* Max width constraint */
+            margin-bottom: 10px; /* Space below viewer */
+            display: flex; /* Use flex for centering message */
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #viewer {
+            width: 100%; /* Take full width of container */
+            height: 65vh; /* Slightly taller */
+            background: #fff; /* White background */
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; /* Hide potential overflow */
+            cursor: pointer; /* Indicate clickable */
+            position: relative; /* Needed for potential overlays later */
+            color: #888; /* Placeholder text color */
+            font-size: 1.2em;
+        }
+
+        #viewer img,
+        #viewer video {
+            max-width: 100%;
+            max-height: 100%;
+            display: block; /* Remove extra space below image */
+            object-fit: contain; /* Ensure aspect ratio is maintained */
+            border-radius: 8px; /* Match viewer radius */
+        }
+
+        #fileNameDisplay {
+            margin-top: 8px;
+            font-style: italic;
+            color: #555;
+            min-height: 1.2em; /* Reserve space */
+             max-width: 100%; /* Prevent overflow */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+
+        /* --- File List Area --- */
+        #fileListContainer {
+             width: 85vw; /* Match viewer width */
+            max-width: 900px; /* Match viewer max-width */
+            margin-top: 10px; /* Space above list */
+        }
+
+        #fileList {
+            list-style: none;
+            padding: 0;
+            margin: 0; /* Remove default margins */
+            max-height: 200px; /* Set a max height */
+            overflow-y: auto; /* Enable vertical scroll */
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            text-align: left; /* Align text left */
+        }
+
+        #fileList li {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee; /* Separator line */
+            transition: background-color 0.2s ease;
+            overflow: hidden;      /* Prevent text overflow */
+            text-overflow: ellipsis; /* Add ellipsis (...) */
+            white-space: nowrap;   /* Keep text on one line */
+        }
+        #fileList li:last-child {
+            border-bottom: none; /* No line for the last item */
+        }
+        #fileList li:hover {
+            background-color: #e9ecef; /* Light grey hover */
+        }
+        #fileList li.active { /* Style for the currently displayed item */
+            background-color: #cce5ff; /* Light blue */
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none;
+        }
+
     </style>
 </head>
 <body>
-    <input type="file" id="zipInput" />
-    <button onclick="unzipFile()">Unzip</button>
-    <div id="viewer" onclick="nextFile(event)"></div>
-    <button onclick="toggleFileList()">Tampilkan Semua File</button>
-    <ul id="fileList" class="hidden"></ul><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script>
-    let extractedFiles = [];
-    let currentIndex = 0;
 
-    async function unzipFile() {
-        let fileInput = document.getElementById("zipInput").files[0];
-        if (!fileInput) return alert("Pilih file ZIP dulu!");
+    <div class="controls">
+        <input type="file" id="zipInput" accept=".zip" />
+        <button onclick="unzipFile()" id="unzipBtn">Unzip</button>
+        <button onclick="toggleFileList()" id="toggleListBtn" disabled>Tampilkan Semua File</button>
+    </div>
 
-        let zip = new JSZip();
-        let zipData = await fileInput.arrayBuffer();
-        let zipContents = await zip.loadAsync(zipData);
-        extractedFiles = [];
-        
-        for (let filename in zipContents.files) {
-            let file = zipContents.files[filename];
-            if (!file.dir && /\.(jpg|jpeg|png|gif|mp4|webm)$/i.test(filename)) {
-                let blob = await file.async("blob");
-                let url = URL.createObjectURL(blob);
-                extractedFiles.push({ filename, url });
+    <div id="viewerContainer">
+        <div id="viewer">
+             Pilih file ZIP dan klik "Unzip"
+        </div>
+        <div id="fileNameDisplay"></div> <!-- Added filename display -->
+    </div>
+
+
+    <div id="fileListContainer" class="hidden"> <!-- Wrapper for the list -->
+        <ul id="fileList"></ul>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        let extractedFiles = [];
+        let currentIndex = -1; // Start at -1 (no file selected)
+        const viewer = document.getElementById("viewer");
+        const fileList = document.getElementById("fileList");
+        const fileListContainer = document.getElementById("fileListContainer");
+        const fileNameDisplay = document.getElementById("fileNameDisplay");
+        const toggleListBtn = document.getElementById("toggleListBtn");
+        const unzipBtn = document.getElementById("unzipBtn");
+        const zipInput = document.getElementById("zipInput");
+
+        function clearViewerAndList() {
+            extractedFiles = [];
+            currentIndex = -1;
+            viewer.innerHTML = 'Pilih file ZIP dan klik "Unzip"';
+            fileNameDisplay.textContent = "";
+            fileList.innerHTML = "";
+            fileListContainer.classList.add("hidden");
+            toggleListBtn.textContent = "Tampilkan Semua File";
+            toggleListBtn.disabled = true;
+            updateActiveListItem(); // Clear active state
+        }
+
+        async function unzipFile() {
+            const fileInput = zipInput.files[0];
+            if (!fileInput) {
+                alert("Pilih file ZIP dulu!");
+                return;
+            }
+
+            // Clear previous results
+            clearViewerAndList();
+            viewer.textContent = "Membaca file ZIP...";
+            unzipBtn.disabled = true; // Disable button during processing
+
+            try {
+                const zip = new JSZip();
+                const zipData = await fileInput.arrayBuffer();
+                const zipContents = await zip.loadAsync(zipData);
+                const filePromises = [];
+
+                viewer.textContent = "Mengekstrak file...";
+
+                // Iterate and filter supported files
+                for (const filename in zipContents.files) {
+                    const file = zipContents.files[filename];
+                    // Skip directories and hidden files/folders (like __MACOSX)
+                    if (!file.dir && !filename.startsWith('__') && /\.(jpe?g|png|gif|mp4|webm)$/i.test(filename)) {
+                         // Use a closure to capture filename correctly in the promise
+                        filePromises.push(
+                           (async (name, fileEntry) => {
+                                const blob = await fileEntry.async("blob");
+                                const url = URL.createObjectURL(blob);
+                                return { filename: name, url, type: blob.type }; // Store blob type
+                           })(filename, file)
+                        );
+                    }
+                }
+
+                 // Wait for all blobs/URLs to be created
+                extractedFiles = await Promise.all(filePromises);
+
+                // Sort files alphabetically by filename
+                extractedFiles.sort((a, b) => a.filename.localeCompare(b.filename));
+
+
+                if (extractedFiles.length > 0) {
+                    currentIndex = 0;
+                    displayFile();
+                    populateFileList(); // Populate list after extraction
+                    toggleListBtn.disabled = false; // Enable list button
+                } else {
+                    viewer.textContent = "Tidak ada file gambar atau video yang didukung dalam ZIP ini.";
+                    alert("Tidak ada file gambar atau video yang didukung dalam ZIP ini.");
+                }
+            } catch (error) {
+                console.error("Error unzipping file:", error);
+                viewer.textContent = "Gagal membuka file ZIP.";
+                alert("Terjadi kesalahan saat membuka file ZIP: " + error.message);
+            } finally {
+                 unzipBtn.disabled = false; // Re-enable button
             }
         }
-        if (extractedFiles.length > 0) {
-            currentIndex = 0;
-            displayFile();
+
+        function displayFile() {
+            viewer.innerHTML = ""; // Clear previous content or placeholder
+             fileNameDisplay.textContent = ""; // Clear filename display
+
+            if (currentIndex < 0 || currentIndex >= extractedFiles.length) {
+                viewer.textContent = "Tidak ada file untuk ditampilkan.";
+                return;
+            }
+
+            const file = extractedFiles[currentIndex];
+            fileNameDisplay.textContent = file.filename; // Display current filename
+
+            // Determine if it's an image or video based on stored type or extension
+             const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|gif)$/i.test(file.filename);
+             const isVideo = file.type.startsWith('video/') || /\.(mp4|webm)$/i.test(file.filename);
+
+            if (isImage) {
+                const img = document.createElement("img");
+                img.src = file.url;
+                img.alt = file.filename;
+                viewer.appendChild(img);
+            } else if (isVideo) {
+                const video = document.createElement("video");
+                video.src = file.url;
+                video.controls = true;
+                video.autoplay = true; // Optional: start playing automatically
+                video.muted = true; // Often needed for autoplay to work
+                video.playsInline = true; // Good practice for mobile
+                viewer.appendChild(video);
+            } else {
+                 // Fallback if type detection somehow fails but was initially included
+                 viewer.textContent = `Format file tidak didukung untuk ditampilkan: ${file.filename}`;
+            }
+            updateActiveListItem(); // Highlight the current file in the list
         }
-    }
 
-    function displayFile() {
-        let viewer = document.getElementById("viewer");
-        viewer.innerHTML = "";
-        if (extractedFiles.length === 0) return;
-
-        let file = extractedFiles[currentIndex];
-        let fileType = file.filename.split('.').pop().toLowerCase();
-        
-        if (["jpg", "jpeg", "png", "gif"].includes(fileType)) {
-            let img = document.createElement("img");
-            img.src = file.url;
-            viewer.appendChild(img);
-        } else if (["mp4", "webm"].includes(fileType)) {
-            let video = document.createElement("video");
-            video.src = file.url;
-            video.controls = true;
-            viewer.appendChild(video);
+        function navigateFiles(direction) {
+             if (extractedFiles.length === 0) return;
+             currentIndex = (currentIndex + direction + extractedFiles.length) % extractedFiles.length;
+             displayFile();
         }
-    }
 
-    function nextFile(event) {
-        if (extractedFiles.length === 0) return;
-        let isLeftClick = event.clientX < window.innerWidth / 2;
-        if (isLeftClick) {
-            currentIndex = (currentIndex - 1 + extractedFiles.length) % extractedFiles.length;
-        } else {
-            currentIndex = (currentIndex + 1) % extractedFiles.length;
+        function nextFile(event) {
+            // Stop video from playing when clicking viewer to navigate
+            const currentVideo = viewer.querySelector('video');
+            if (currentVideo) {
+                currentVideo.pause();
+            }
+
+            // Determine click position (left half = previous, right half = next)
+            const clickX = event.clientX;
+            const viewerRect = viewer.getBoundingClientRect(); // Get viewer position and size
+            const middleX = viewerRect.left + viewerRect.width / 2;
+
+            if (clickX < middleX) {
+                navigateFiles(-1); // Previous
+            } else {
+                navigateFiles(1); // Next
+            }
         }
-        displayFile();
-    }
 
-    function toggleFileList() {
-        let fileList = document.getElementById("fileList");
-        fileList.classList.toggle("hidden");
-        fileList.innerHTML = extractedFiles.map(file => `<li onclick="showFile('${file.url}')">${file.filename}</li>`).join("");
-    }
+        function populateFileList() {
+            fileList.innerHTML = extractedFiles.map((file, index) =>
+                `<li onclick="showFileByIndex(${index})" data-index="${index}">
+                    ${file.filename}
+                 </li>`
+            ).join("");
+             updateActiveListItem(); // Ensure correct item is active initially
+        }
 
-    function showFile(url) {
-        let viewer = document.getElementById("viewer");
-        viewer.innerHTML = "";
-        let img = document.createElement("img");
-        img.src = url;
-        viewer.appendChild(img);
-    }
-</script>
+        function toggleFileList() {
+             if (extractedFiles.length === 0) return;
 
+            const isHidden = fileListContainer.classList.toggle("hidden");
+            toggleListBtn.textContent = isHidden ? "Tampilkan Semua File" : "Sembunyikan File";
+            if (!isHidden) {
+                 // If showing, ensure the active item is visible
+                 scrollToActiveListItem();
+             }
+        }
+
+        function showFileByIndex(index) {
+            if (index >= 0 && index < extractedFiles.length) {
+                currentIndex = index;
+                displayFile();
+                 // Optional: Hide list after selecting an item
+                // if (!fileListContainer.classList.contains("hidden")) {
+                //     toggleFileList();
+                // }
+            }
+        }
+
+        function updateActiveListItem() {
+             // Remove 'active' class from all items
+            fileList.querySelectorAll('li').forEach(li => li.classList.remove('active'));
+            // Add 'active' class to the current item
+             if (currentIndex >= 0) {
+                 const activeLi = fileList.querySelector(`li[data-index="${currentIndex}"]`);
+                 if (activeLi) {
+                    activeLi.classList.add('active');
+                 }
+             }
+        }
+
+        function scrollToActiveListItem() {
+            if (currentIndex < 0 || fileListContainer.classList.contains("hidden")) return;
+            const activeLi = fileList.querySelector(`li[data-index="${currentIndex}"]`);
+            if (activeLi) {
+                // Scroll the list container to bring the active item into view
+                activeLi.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+
+        // --- Event Listeners ---
+        viewer.addEventListener('click', nextFile);
+
+        // Optional: Add keyboard navigation
+        document.addEventListener('keydown', (event) => {
+            if (extractedFiles.length === 0) return; // Only navigate if files are loaded
+
+            if (event.key === 'ArrowLeft') {
+                 navigateFiles(-1); // Previous
+             } else if (event.key === 'ArrowRight') {
+                 navigateFiles(1); // Next
+             }
+        });
+
+        // Revoke object URLs when the page is closed to free up memory
+        window.addEventListener('beforeunload', () => {
+            extractedFiles.forEach(file => URL.revokeObjectURL(file.url));
+        });
+
+         // Clear viewer if a new file is selected but not yet unzipped
+        zipInput.addEventListener('change', () => {
+            clearViewerAndList();
+            viewer.textContent = 'File dipilih. Klik "Unzip" untuk membuka.';
+        });
+
+        // Initial setup
+        clearViewerAndList(); // Start clean
+
+
+    </script>
 </body>
-</html>
+    </html>
