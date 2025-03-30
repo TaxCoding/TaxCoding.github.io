@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unlock ZIP Temporary</title>
+</head>
+<body>
+    <input type="file" id="zipInput" />
+    <button onclick="unzipFile()">Unzip</button>
+    <ul id="fileList"></ul>
+    <div id="preview"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        let extractedFiles = {}; // Penyimpanan sementara
+
+        async function unzipFile() {
+            let fileInput = document.getElementById("zipInput").files[0];
+            if (!fileInput) return alert("Pilih file ZIP dulu!");
+
+            let zip = new JSZip();
+            let zipData = await fileInput.arrayBuffer();
+            let zipContents = await zip.loadAsync(zipData);
+
+            let fileList = document.getElementById("fileList");
+            fileList.innerHTML = "";
+            extractedFiles = {}; // Reset penyimpanan setiap ekstraksi baru
+
+            Object.keys(zipContents.files).forEach(async (filename) => {
+                let file = zipContents.files[filename];
+
+                if (!file.dir) {
+                    let blob = await file.async("blob");
+                    let url = URL.createObjectURL(blob);
+                    extractedFiles[filename] = url;
+
+                    let listItem = document.createElement("li");
+                    let link = document.createElement("a");
+                    link.href = url;
+                    link.textContent = filename;
+                    link.target = "_blank";
+                    link.onclick = () => previewFile(filename, blob);
+
+                    listItem.appendChild(link);
+                    fileList.appendChild(listItem);
+                }
+            });
+        }
+
+        function previewFile(filename, blob) {
+            let previewDiv = document.getElementById("preview");
+            previewDiv.innerHTML = "";
+
+            let fileType = filename.split('.').pop().toLowerCase();
+            let url = URL.createObjectURL(blob);
+
+            if (["jpg", "jpeg", "png", "gif"].includes(fileType)) {
+                let img = document.createElement("img");
+                img.src = url;
+                img.style.maxWidth = "100%";
+                previewDiv.appendChild(img);
+            } else if (["mp4", "webm"].includes(fileType)) {
+                let video = document.createElement("video");
+                video.src = url;
+                video.controls = true;
+                previewDiv.appendChild(video);
+            } else if (["txt", "json", "html", "js", "css"].includes(fileType)) {
+                fetch(url).then(res => res.text()).then(text => {
+                    let pre = document.createElement("pre");
+                    pre.textContent = text;
+                    previewDiv.appendChild(pre);
+                });
+            } else {
+                let msg = document.createElement("p");
+                msg.textContent = "Preview tidak didukung untuk file ini.";
+                previewDiv.appendChild(msg);
+            }
+        }
+    </script>
+</body>
+</html>
