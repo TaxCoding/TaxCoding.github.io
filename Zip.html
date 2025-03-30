@@ -1,82 +1,94 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unlock ZIP Temporary</title>
+    <title>ZIP Viewer</title>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        #viewer { width: 80vw; height: 60vh; margin: auto; background: #ddd; display: flex; align-items: center; justify-content: center; }
+        #viewer img, #viewer video { max-width: 100%; max-height: 100%; }
+        #fileList { margin-top: 10px; }
+        .hidden { display: none; }
+    </style>
 </head>
 <body>
     <input type="file" id="zipInput" />
     <button onclick="unzipFile()">Unzip</button>
-    <ul id="fileList"></ul>
-    <div id="preview"></div>
+    <div id="viewer" onclick="nextFile(event)"></div>
+    <button onclick="toggleFileList()">Tampilkan Semua File</button>
+    <ul id="fileList" class="hidden"></ul><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+    let extractedFiles = [];
+    let currentIndex = 0;
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script>
-        let extractedFiles = {}; // Penyimpanan sementara
+    async function unzipFile() {
+        let fileInput = document.getElementById("zipInput").files[0];
+        if (!fileInput) return alert("Pilih file ZIP dulu!");
 
-        async function unzipFile() {
-            let fileInput = document.getElementById("zipInput").files[0];
-            if (!fileInput) return alert("Pilih file ZIP dulu!");
-
-            let zip = new JSZip();
-            let zipData = await fileInput.arrayBuffer();
-            let zipContents = await zip.loadAsync(zipData);
-
-            let fileList = document.getElementById("fileList");
-            fileList.innerHTML = "";
-            extractedFiles = {}; // Reset penyimpanan setiap ekstraksi baru
-
-            Object.keys(zipContents.files).forEach(async (filename) => {
-                let file = zipContents.files[filename];
-
-                if (!file.dir) {
-                    let blob = await file.async("blob");
-                    let url = URL.createObjectURL(blob);
-                    extractedFiles[filename] = url;
-
-                    let listItem = document.createElement("li");
-                    let link = document.createElement("a");
-                    link.href = url;
-                    link.textContent = filename;
-                    link.target = "_blank";
-                    link.onclick = () => previewFile(filename, blob);
-
-                    listItem.appendChild(link);
-                    fileList.appendChild(listItem);
-                }
-            });
-        }
-
-        function previewFile(filename, blob) {
-            let previewDiv = document.getElementById("preview");
-            previewDiv.innerHTML = "";
-
-            let fileType = filename.split('.').pop().toLowerCase();
-            let url = URL.createObjectURL(blob);
-
-            if (["jpg", "jpeg", "png", "gif"].includes(fileType)) {
-                let img = document.createElement("img");
-                img.src = url;
-                img.style.maxWidth = "100%";
-                previewDiv.appendChild(img);
-            } else if (["mp4", "webm"].includes(fileType)) {
-                let video = document.createElement("video");
-                video.src = url;
-                video.controls = true;
-                previewDiv.appendChild(video);
-            } else if (["txt", "json", "html", "js", "css"].includes(fileType)) {
-                fetch(url).then(res => res.text()).then(text => {
-                    let pre = document.createElement("pre");
-                    pre.textContent = text;
-                    previewDiv.appendChild(pre);
-                });
-            } else {
-                let msg = document.createElement("p");
-                msg.textContent = "Preview tidak didukung untuk file ini.";
-                previewDiv.appendChild(msg);
+        let zip = new JSZip();
+        let zipData = await fileInput.arrayBuffer();
+        let zipContents = await zip.loadAsync(zipData);
+        extractedFiles = [];
+        
+        for (let filename in zipContents.files) {
+            let file = zipContents.files[filename];
+            if (!file.dir && /\.(jpg|jpeg|png|gif|mp4|webm)$/i.test(filename)) {
+                let blob = await file.async("blob");
+                let url = URL.createObjectURL(blob);
+                extractedFiles.push({ filename, url });
             }
         }
-    </script>
+        if (extractedFiles.length > 0) {
+            currentIndex = 0;
+            displayFile();
+        }
+    }
+
+    function displayFile() {
+        let viewer = document.getElementById("viewer");
+        viewer.innerHTML = "";
+        if (extractedFiles.length === 0) return;
+
+        let file = extractedFiles[currentIndex];
+        let fileType = file.filename.split('.').pop().toLowerCase();
+        
+        if (["jpg", "jpeg", "png", "gif"].includes(fileType)) {
+            let img = document.createElement("img");
+            img.src = file.url;
+            viewer.appendChild(img);
+        } else if (["mp4", "webm"].includes(fileType)) {
+            let video = document.createElement("video");
+            video.src = file.url;
+            video.controls = true;
+            viewer.appendChild(video);
+        }
+    }
+
+    function nextFile(event) {
+        if (extractedFiles.length === 0) return;
+        let isLeftClick = event.clientX < window.innerWidth / 2;
+        if (isLeftClick) {
+            currentIndex = (currentIndex - 1 + extractedFiles.length) % extractedFiles.length;
+        } else {
+            currentIndex = (currentIndex + 1) % extractedFiles.length;
+        }
+        displayFile();
+    }
+
+    function toggleFileList() {
+        let fileList = document.getElementById("fileList");
+        fileList.classList.toggle("hidden");
+        fileList.innerHTML = extractedFiles.map(file => `<li onclick="showFile('${file.url}')">${file.filename}</li>`).join("");
+    }
+
+    function showFile(url) {
+        let viewer = document.getElementById("viewer");
+        viewer.innerHTML = "";
+        let img = document.createElement("img");
+        img.src = url;
+        viewer.appendChild(img);
+    }
+</script>
+
 </body>
 </html>
